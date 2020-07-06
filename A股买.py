@@ -23,7 +23,7 @@ matplotlib.style.use('ggplot')
 ts.set_token('fb60c870e18798f256a5d5dcd9faac6cb458ac9640144da99d998d90')
 pro = ts.pro_api()
 
-stock='601238.SH'#农行 601288.SH   
+stock='601288.SH'#农行 601288.SH   
 df = pro.daily(ts_code=stock, start_date='20050101',end_date=datetime.date.today().strftime('%Y%m%d')).sort_index(axis=0, ascending=False)
 df['trade_date'] = pd.to_datetime(df['trade_date'])
 df=df.set_index(['trade_date'])
@@ -66,10 +66,13 @@ df['HS300_ROC'] = 100*df['HS300'].diff(1)/df['HS300'].shift(1)
 df['close_ROC'] = 100*df['close'].diff(1)/df['close'].shift(1)
 df['close/HS300'] = df['close_ROC']/df['close_ROC']  
 stochastic_oscillator(df)
-df['Intersection'] = 0
-df.loc[(df['K']>df['D']) & (df['K_prev']<df['D_prev']) & (df['D']<=80)  & (df['D_diff']>0),'Intersection'] = 1# Intersections: K go exceeds D   
-df['# Inter 10-day'] = df['Intersection'].rolling(14).sum()# number of intersections during past 10 days    
-df['close/MA10']= df['close']/df['close'].rolling(10).mean()# df['MA10']= df['close'].rolling(10) Moving Average of the past 10 days
+df['UpInter'] = 0
+df.loc[(df['K']>df['D']) & (df['K_prev']<df['D_prev']) & (df['D']<=80) & (df['D_diff']>0),'UpInter']=1# Inters: K go exceeds D   
+df['UpInter10'] = df['UpInter'].rolling(10).sum()# number of Inters during past 10 days
+df['DnInter'] = 0
+df.loc[(df['K']<df['D']) & (df['K_prev']>df['D_prev']) & (df['D']>=20) & (df['D_diff']<0),'DnInter']=1
+df['DnInter10'] = df['DnInter'].rolling(10).sum()      
+df['close/MA10']= df['close']/df['close'].rolling(10).mean()
 df['close/MA20']= df['close']/df['close'].rolling(20).mean()
 df['close/MA50']= df['close']/df['close'].rolling(50).mean()
 df['close/MA100']= df['close']/df['close'].rolling(100).mean()
@@ -78,7 +81,7 @@ df['VAR5']= df['close_ROC'].rolling(5).std()
 df['VAR10']= df['close_ROC'].rolling(10).std()
 buyjudge(df,duration=testduration)
 featurelist=['amount100','amount20','amount10','amount5',
-             '# Inter 10-day','Intersection',
+             'UpInter10','UpInter','DnInter10','DnInter',
              'close/HS300',
              'MAVOL20','MAVOL10','MAVOL5','MAVOL150',
             'close_ROC','rsv','K','D','J',
