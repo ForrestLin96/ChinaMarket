@@ -19,11 +19,12 @@ from Afunction import buyjudge,stochastic_oscillator,plot_precision_recall_vs_th
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier   
 matplotlib.style.use('ggplot')
-#%%数据获取模块
+
+#数据获取模块
 ts.set_token('fb60c870e18798f256a5d5dcd9faac6cb458ac9640144da99d998d90')
 pro = ts.pro_api()
 
-stock='601288.SH'#农行 601288.SH   
+stock='002839.SZ'#农行 601288.SH   
 df = pro.daily(ts_code=stock, start_date='20050101',end_date=datetime.date.today().strftime('%Y%m%d')).sort_index(axis=0, ascending=False)
 df['trade_date'] = pd.to_datetime(df['trade_date'])
 df=df.set_index(['trade_date'])
@@ -34,8 +35,9 @@ df_HS300=df_HS300.set_index(['trade_date'])
 # df_VIX = pro.index_daily(ts_code='000300.SH', start_date='20050101', end_date=datetime.date.today().strftime('%Y%m%d')).sort_index(axis=0, ascending=False).iloc[-len(df):,:]
 # df_VIX['trade_date'] = pd.to_datetime(df_VIX['trade_date'])
 # df_VIX=df_HS300.set_index(['trade_date'])
-testduration=-90
-#%%
+testduration=-120
+rawdata=df.iloc[testduration:]['close']
+
 method_name = [{
                 'Random Forrest':RandomForestClassifier(),
                 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
@@ -51,46 +53,43 @@ method_name = [{
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
 
-rawdata=df.iloc[testduration:]['close']
 #Add features in
-df['MAVOL150'] = df['vol']/df['vol'].rolling(150).mean()
-df['MAVOL20'] = df['vol']/df['vol'].rolling(20).mean()
-df['MAVOL10'] = df['vol']/df['vol'].rolling(10).mean()
-df['MAVOL5'] = df['vol']/df['vol'].rolling(5).mean()
-df['amount100'] = df['amount']/df['amount'].rolling(100).mean()
-df['amount20'] = df['amount']/df['amount'].rolling(20).mean()
-df['amount10'] = df['amount']/df['amount'].rolling(10).mean()
-df['amount5'] = df['amount']/df['amount'].rolling(5).mean()
-df['HS300'] = df_HS300['close']
-df['HS300_ROC'] = 100*df['HS300'].diff(1)/df['HS300'].shift(1)
-df['close_ROC'] = 100*df['close'].diff(1)/df['close'].shift(1)
-df['close/HS300'] = df['close_ROC']/df['close_ROC']  
-stochastic_oscillator(df)
+df['close_roc'] = 100*df['close'].diff()/df['close'].shift()
+df['close/open'] = 100*df['close']/df['open']
+df['close/high'] = 100*df['close']/df['high']
+df['close/low'] = 100*df['close']/df['low']
+df['rlt_close'],df['rlt_vol'],df['rlt_amount'] = df['close_roc']/df_HS300['pct_chg'],df['vol']/df_HS300['vol'],df['amount']/df_HS300['amount']
+df['MAVOL5'],df['MAVOL10'] = df['vol']/df['vol'].rolling(5).mean(),df['vol']/df['vol'].rolling(10).mean()
+df['MAVOL20'],df['MAVOL150'] = df['vol']/df['vol'].rolling(20).mean(),df['vol']/df['vol'].rolling(150).mean()
+df['amount5'],df['amount10'] = df['amount']/df['amount'].rolling(5).mean(),df['amount']/df['amount'].rolling(10).mean()
+df['amount20'],df['amount100'] = df['amount']/df['amount'].rolling(20).mean(),df['amount']/df['amount'].rolling(100).mean()
+df=stochastic_oscillator(df)
+
 df['UpInter'] = 0
-df.loc[(df['K']>df['D']) & (df['K_prev']<df['D_prev']) & (df['D']<=80) & (df['D_diff']>0),'UpInter']=1# Inters: K go exceeds D   
-df['UpInter10'] = df['UpInter'].rolling(10).sum()# number of Inters during past 10 days
+df.loc[(df['K']>df['D']) & (df['K'].shift()<df['D'].shift()) & (df['D']<=80) & (df['D_diff']>0),'UpInter']=1# Inters: K go exceeds D   
+df['UpInter10'] = df['UpInter'].rolling(10).sum()
 df['DnInter'] = 0
-df.loc[(df['K']<df['D']) & (df['K_prev']>df['D_prev']) & (df['D']>=20) & (df['D_diff']<0),'DnInter']=1
-df['DnInter10'] = df['DnInter'].rolling(10).sum()      
+df.loc[(df['K']<df['D']) & (df['K'].shift()>df['D'].shift()) & (df['D']>=20) & (df['D_diff']<0),'DnInter']=1
+df['DnInter10'] = df['DnInter'].rolling(10).sum()
+      
 df['close/MA10']= df['close']/df['close'].rolling(10).mean()
 df['close/MA20']= df['close']/df['close'].rolling(20).mean()
 df['close/MA50']= df['close']/df['close'].rolling(50).mean()
 df['close/MA100']= df['close']/df['close'].rolling(100).mean()
 df['close/MA150']= df['close']/df['close'].rolling(150).mean()
-df['VAR5']= df['close_ROC'].rolling(5).std()
-df['VAR10']= df['close_ROC'].rolling(10).std()
-buyjudge(df,duration=testduration)
-featurelist=['amount100','amount20','amount10','amount5',
+df['VAR5']= df['close_roc'].rolling(5).std()
+df['VAR10']= df['close_roc'].rolling(10).std()
+df=buyjudge(df,duration=testduration)
+featurelist=['close_roc','close/open','close/high','close/low',
+             'amount100','amount20','amount10','amount5',
              'UpInter10','UpInter','DnInter10','DnInter',
-             'close/HS300',
+             'rlt_close','rlt_vol','rlt_amount',
              'MAVOL20','MAVOL10','MAVOL5','MAVOL150',
-            'close_ROC','rsv','K','D','J',
-            'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff','close/MA10',
-            'close/MA20','close/MA50','close/MA100',
-            'close/MA150',
-            'VAR5','VAR10']
+             'close/MA10','close/MA20','close/MA50','close/MA100', 'close/MA150',
+             'rsv','K','D','J',
+             'K_ROC','D_ROC','K_diff','D_diff','J_ROC','J_diff',
+             'VAR5','VAR10']
   
-df=df.drop(columns=['10天最高价'])
 df.dropna(axis=0, how='any', inplace=True)
 xshow=df.iloc[testduration:,:].loc[:,featurelist]
 xshow = preprocessing.MinMaxScaler().fit_transform(xshow)
@@ -98,6 +97,7 @@ if None in xshow[-1,:]:
     xshow=np.delete(xshow,-1,0)
 X=df.loc[:,featurelist]
 X = preprocessing.MinMaxScaler().fit_transform(X)
+#X = preprocessing.StandardScaler().fit_transform(X)
 
 y=df.loc[:,'Good Buy Point?']
 # Split train set and test set
@@ -126,15 +126,15 @@ plt.title(stock+'\nPrecision Rate')
 plt.show()
     
 #Plot precision rate of each method 
-index=0
-for method in method_list.loc[0,:]:
-     clf = method
-     clf.fit(xtrain, ytrain)
-     buypredicted = clf.predict_proba(xtest)
-     precision, recall, threshold = precision_recall_curve(ytest, buypredicted[:,1])
-     plot_precision_recall_vs_threshold(index,stock,method_list,precision, recall, threshold)
-     plt.show()
-     index=index+1
+# index=0
+# for method in method_list.loc[0,:]:
+#      clf = method
+#      clf.fit(xtrain, ytrain)
+#      buypredicted = clf.predict_proba(xtest)
+#      precision, recall, threshold = precision_recall_curve(ytest, buypredicted[:,1])
+#      plot_precision_recall_vs_threshold(index,stock,method_list,precision, recall, threshold)
+#      plt.show()
+#      index=index+1
 #%%       Naive Bayes       
 clfbuy =GaussianNB(var_smoothing=1) 
 clfbuy.fit(xtrain, ytrain)
