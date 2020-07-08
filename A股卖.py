@@ -24,7 +24,7 @@ matplotlib.style.use('ggplot')
 ts.set_token('fb60c870e18798f256a5d5dcd9faac6cb458ac9640144da99d998d90')
 pro = ts.pro_api()
 
-stock='002839.SZ '#农行 601288.SH   #张家港 002839.SZ 
+stock='601288.SH '#农行 601288.SH   #张家港 002839.SZ 
 df = pro.daily(ts_code=stock, start_date='20050101',end_date=datetime.date.today().strftime('%Y%m%d')).sort_index(axis=0, ascending=False)
 df['trade_date'] = pd.to_datetime(df['trade_date'])
 df=df.set_index(['trade_date'])
@@ -35,7 +35,7 @@ df_HS300=df_HS300.set_index(['trade_date'])
 # df_VIX = pro.index_daily(ts_code='000300.SH', start_date='20050101', end_date=datetime.date.today().strftime('%Y%m%d')).sort_index(axis=0, ascending=False).iloc[-len(df):,:]
 # df_VIX['trade_date'] = pd.to_datetime(df_VIX['trade_date'])
 # df_VIX=df_HS300.set_index(['trade_date'])
-testduration=-90
+testduration=-120
 rawdata=df.iloc[testduration:]['close']
 
 method_name = [{

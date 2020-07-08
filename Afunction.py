@@ -15,7 +15,8 @@ def plot_precision_recall_vs_threshold(index,stock,method_list,precisions, recal
     plt.plot(thresholds, recalls[:-1], "g-", label="Recall")
     plt.xlabel("Threshold")
     plt.legend(loc="lower left")
-    plt.xlim([0.5, thresholds.max()])
+    # plt.xlim([0.5, thresholds.max()])
+    plt.xlim([thresholds.min(), thresholds.max()])
     plt.ylim([0, 1])
     plt.title(stock+'\n'+method_list.columns[index])
 #Define Stochastic Osciliator

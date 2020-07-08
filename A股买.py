@@ -24,7 +24,7 @@ matplotlib.style.use('ggplot')
 ts.set_token('fb60c870e18798f256a5d5dcd9faac6cb458ac9640144da99d998d90')
 pro = ts.pro_api()
 
-stock='002839.SZ'#农行 601288.SH   
+stock='601288.SH'#农行 601288.SH   张家港 002839.SZ  
 df = pro.daily(ts_code=stock, start_date='20050101',end_date=datetime.date.today().strftime('%Y%m%d')).sort_index(axis=0, ascending=False)
 df['trade_date'] = pd.to_datetime(df['trade_date'])
 df=df.set_index(['trade_date'])
@@ -39,16 +39,16 @@ testduration=-120
 rawdata=df.iloc[testduration:]['close']
 
 method_name = [{
-                'Random Forrest':RandomForestClassifier(),
-                'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
-                'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
-                'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
-                'Bayes(smo=1)':GaussianNB(var_smoothing=1),
-                'SVC(C=1)':svm.SVC(probability=True),
-                'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
-                'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
-                'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
-                'XGBT(λ=0.8)':Xgb(reg_lambda=0.8)
+                # 'Random Forrest':RandomForestClassifier(),
+                # 'Random Forrest30':RandomForestClassifier(oob_score=True, random_state=30),
+                # 'Bayes(smo=1e-01)':GaussianNB(var_smoothing=1e-01),
+                # 'Bayes(smo=0.5)':GaussianNB(var_smoothing=0.5),
+                # 'Bayes(smo=1)':GaussianNB(var_smoothing=1),
+                # 'SVC(C=1)':svm.SVC(probability=True),
+                # 'SVC(linear, C=1)':svm.SVC(kernel='linear', C=1,probability=True),
+                # 'SVC(poly, C=1)':svm.SVC(kernel='poly',probability=True),
+                # 'XGBT(λ=1)':Xgb(reg_lambda=1),#Result of parameter tunning in XGBPara.py
+                # 'XGBT(λ=0.8)':Xgb(reg_lambda=0.8)
                 }]
 method_list=pd.DataFrame(method_name)
 ResultTable=DataFrame(columns=['Stock','Method','AvgScores','StdScores'])
@@ -126,15 +126,15 @@ plt.title(stock+'\nPrecision Rate')
 plt.show()
     
 #Plot precision rate of each method 
-# index=0
-# for method in method_list.loc[0,:]:
-#      clf = method
-#      clf.fit(xtrain, ytrain)
-#      buypredicted = clf.predict_proba(xtest)
-#      precision, recall, threshold = precision_recall_curve(ytest, buypredicted[:,1])
-#      plot_precision_recall_vs_threshold(index,stock,method_list,precision, recall, threshold)
-#      plt.show()
-#      index=index+1
+index=0
+for method in method_list.loc[0,:]:
+      clf = method
+      clf.fit(xtrain, ytrain)
+      buypredicted = clf.predict_proba(xtest)
+      precision, recall, threshold = precision_recall_curve(ytest, buypredicted[:,1])
+      plot_precision_recall_vs_threshold(index,stock,method_list,precision, recall, threshold)
+      plt.show()
+      index=index+1
 #%%       Naive Bayes       
 clfbuy =GaussianNB(var_smoothing=1) 
 clfbuy.fit(xtrain, ytrain)
